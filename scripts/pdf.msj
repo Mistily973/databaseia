@@ -1,0 +1,24 @@
+import puppeteer from "puppeteer-core";
+
+const browser = await puppeteer.launch({
+  executablePath: "/usr/bin/brave-browser", // la ruta que te dio "which"
+  args: ["--no-sandbox"],
+});
+
+const page = await browser.newPage();
+
+await page.setViewport({ width: 1440, height: 900 });
+await page.goto("http://localhost:3000", { waitUntil: "networkidle0" });
+
+const height = await page.evaluate(() => document.documentElement.scrollHeight);
+
+await page.pdf({
+  path: "landing.pdf",
+  width: "1440px",
+  height: `${height}px`,
+  printBackground: true,
+  pageRanges: "1",
+});
+
+await browser.close();
+console.log("✅ PDF generado: landing.pdf");xx
