@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+/* ===== 1. Paleta de la marca ===== */
+@theme {
+  --color-brand-50: #f4f9ee;   /* fondo general */
+  --color-brand-100: #e8f3dc;  /* fondos suaves, iconos */
+  --color-brand-200: #cfe6b8;  /* bordes */
+  --color-brand-300: #b5d98f;
+  --color-brand-500: #5a9a36;
+  --color-brand-600: #4a8a2c;  /* botón principal */
+  --color-brand-700: #3b6f22;  /* hover */
+  --color-brand-900: #23401a;  /* textos y secciones oscuras */
+  --color-brand-950: #17290f;
+
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ===== 2. Estilos base ===== */
+html {
+  scroll-behavior: smooth; /* para que los links #precios se deslicen */
+}
+
+body {
+  @apply bg-brand-50 text-brand-900 font-sans antialiased;
+}
+
+/* ===== 3. Clases reutilizables ===== */
+
+/* Contenedor centrado que usan TODAS las secciones */
+@utility container-page {
+  @apply mx-auto w-full max-w-6xl px-6;
+}
+
+/* Espaciado vertical de cada sección */
+@utility section {
+  @apply scroll-mt-16 py-20 md:py-24;
+}
+
+/* Fondo verde alterno con bordes */
+@utility section-alt {
+  @apply border-y border-brand-200 bg-brand-100/50;
+}
+
+/* Textos de encabezado: "CÓMO FUNCIONA", "Tres pasos y listo"... */
+@utility eyebrow {
+  @apply text-xs font-bold uppercase tracking-widest text-brand-600;
+}
+@utility title {
+  @apply text-3xl font-extrabold tracking-tight md:text-4xl;
+}
+@utility subtitle {
+  @apply text-lg text-brand-900/70;
+}
+
+/* Tarjeta blanca con borde verde (pasos, funciones, testimonios, FAQ) */
+@utility card {
+  @apply rounded-2xl border border-brand-200 bg-white p-6;
+}
+
+/* Cuadrito verde claro donde van los emojis/iconos */
+@utility icon-box {
+  @apply flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100 text-xl;
+}
+
+/* Etiqueta tipo píldora: "✨ Nuevo: integración con WhatsApp" */
+/* Etiqueta tipo píldora: base + variantes de color */
+@utility badge {
+  @apply inline-flex items-center gap-1 rounded-full border px-4 py-1 text-sm font-semibold;
+}
+@utility badge-light {
+  @apply border-brand-300 bg-brand-100 text-brand-700;
+}
+@utility badge-dark {
+  @apply border-white/20 bg-white/10 text-brand-200;
+}
+
+/* Links del menú */
+@utility nav-link {
+  @apply text-brand-900/80 transition-colors hover:text-brand-600;
+}
+
+/* Botones: una base + variantes */
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-colors;
+}
+@utility btn-primary {
+  @apply bg-brand-600 text-white shadow-sm hover:bg-brand-700;
+}
+@utility btn-outline {
+  @apply border-2 border-brand-600 bg-white text-brand-700 hover:bg-brand-100;
+}
+@utility btn-soft {
+  @apply border border-brand-200 bg-brand-100 text-brand-900 hover:bg-brand-200;
+}
+
+@utility btn-light {
+  @apply border-2 border-brand-200 bg-white text-brand-600 hover:bg-brand-100;
+}
+@utility btn-accent {
+  @apply bg-brand-200 text-brand-950 hover:bg-brand-300;
+}
