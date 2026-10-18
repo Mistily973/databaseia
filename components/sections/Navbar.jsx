@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Logo from "@/components/ui/Logo";
 import Button from "@/components/ui/Button";
 import { navLinks } from "@/lib/data/content";
@@ -17,7 +18,7 @@ export default function Navbar() {
         </ul>
 
         <div className="flex items-center gap-5">
-          <a href="#" className="nav-link hidden sm:block">Iniciar sesión</a>
+          <Link href="/login" className="nav-link hidden sm:block">Iniciar sesión</Link>
           <Button href="#precios" size="sm">Empezar gratis</Button>
         </div>
       </nav>
