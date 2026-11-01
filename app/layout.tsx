@@ -8,7 +8,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "DataBaseIA | Tu Excel convertido en base de datos inteligente",
+  title: "DATAI | Tu Excel convertido en base de datos inteligente",
   description: "Sube tus hojas de cálculo y consulta tu negocio en español, desde la web o WhatsApp.",
 };
 

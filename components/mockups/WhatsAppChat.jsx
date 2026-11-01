@@ -9,7 +9,7 @@ export default function WhatsAppChat() {
           D
         </span>
         <div>
-          <p className="text-sm font-bold text-white">DataBaseIA Bot</p>
+          <p className="text-sm font-bold text-white">DATAI Bot</p>
           <p className="text-xs text-brand-300">En línea</p>
         </div>
       </div>

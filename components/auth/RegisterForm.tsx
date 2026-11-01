@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { browserLocalPersistence, setPersistence, createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { getFirebaseAuth, authErrorMessage } from "@/lib/firebase";
 
 export default function RegisterForm() {
   const router = useRouter();
@@ -10,6 +12,7 @@ export default function RegisterForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -21,7 +24,7 @@ export default function RegisterForm() {
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    if (!name || !email || !password) {
+    if (!name.trim() || !email.trim() || !password || !confirmPassword) {
       setErrorMessage("Por favor, completa todos los campos requeridos.");
       return;
     }
@@ -31,28 +34,45 @@ export default function RegisterForm() {
       return;
     }
 
+    if (password !== confirmPassword) {
+      setErrorMessage("Las contraseñas no coinciden.");
+      return;
+    }
+    if (isLoading || isGoogleLoading) return;
     setIsLoading(true);
-
-    setTimeout(() => {
+    try {
+      const auth = getFirebaseAuth();
+      await setPersistence(auth, browserLocalPersistence);
+      const { user } = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      try {
+        await updateProfile(user, { displayName: name.trim() });
+      } catch {
+        setSuccessMessage("Tu cuenta fue creada, pero no pudimos guardar tu nombre. Puedes continuar al inicio.");
+        return;
+      }
+      router.replace("/");
+    } catch (error) {
+      setErrorMessage(authErrorMessage(error));
+    } finally {
       setIsLoading(false);
-      setSuccessMessage("¡Cuenta creada con éxito! Redirigiendo a tu panel...");
-      setTimeout(() => {
-        router.push("/");
-      }, 1200);
-    }, 1000);
+    }
   };
 
-  const handleGoogleRegister = () => {
+  const handleGoogleRegister = async () => {
+    if (isLoading || isGoogleLoading) return;
     setIsGoogleLoading(true);
     setErrorMessage(null);
-
-    setTimeout(() => {
+    setSuccessMessage(null);
+    try {
+      const auth = getFirebaseAuth();
+      await setPersistence(auth, browserLocalPersistence);
+      await signInWithPopup(auth, new GoogleAuthProvider());
+      router.replace("/");
+    } catch (error) {
+      setErrorMessage(authErrorMessage(error));
+    } finally {
       setIsGoogleLoading(false);
-      setSuccessMessage("Registro con Google completado. Redirigiendo...");
-      setTimeout(() => {
-        router.push("/");
-      }, 1200);
-    }, 1200);
+    }
   };
 
   return (
@@ -63,12 +83,12 @@ export default function RegisterForm() {
             Crea tu cuenta gratis
           </h1>
           <p className="mt-2 text-sm text-brand-900/70">
-            Empieza a transformar tus Excel en IA con <span className="font-semibold text-brand-700">DataBaseIA</span>
+            Empieza a transformar tus Excel en IA con <span className="font-semibold text-brand-700">DATAI</span>
           </p>
         </div>
 
         {errorMessage && (
-          <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 flex items-start gap-3">
+          <div role="alert" className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 flex items-start gap-3">
             <svg className="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -81,7 +101,7 @@ export default function RegisterForm() {
             <svg className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            <span>{successMessage}</span>
+            <span>{successMessage} <Link href="/" className="underline">Ir al inicio</Link></span>
           </div>
         )}
 
@@ -130,7 +150,7 @@ export default function RegisterForm() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label
               htmlFor="register-name"
@@ -224,6 +244,23 @@ export default function RegisterForm() {
                 )}
               </button>
             </div>
+          </div>
+
+          <div>
+            <label htmlFor="register-confirm-password" className="block text-xs font-bold uppercase tracking-wider text-brand-900/80 mb-1.5">
+              Confirmar contraseña
+            </label>
+            <input
+              id="register-confirm-password"
+              type={showPassword ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
+              className="w-full px-4 py-2.5 bg-brand-50/40 border border-brand-200 rounded-xl text-brand-900 placeholder-brand-900/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
+              placeholder="Repite tu contraseña"
+              minLength={6}
+              required
+            />
           </div>
 
           <button

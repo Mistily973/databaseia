@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { browserLocalPersistence, browserSessionPersistence, setPersistence, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from "firebase/auth";
+import { getFirebaseAuth, authErrorMessage } from "@/lib/firebase";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -35,59 +37,49 @@ export default function LoginForm() {
       return;
     }
 
+    if (isLoading || isGoogleLoading) return;
     setIsLoading(true);
-
-    // Simulación de autenticación (integrable con NextAuth, Supabase, Firebase o API propia)
-    setTimeout(() => {
+    try {
+      const auth = getFirebaseAuth();
+      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
+      await signInWithEmailAndPassword(auth, email.trim(), password);
+      router.replace("/");
+    } catch (error) {
+      setErrorMessage(authErrorMessage(error));
+    } finally {
       setIsLoading(false);
-      setSuccessMessage(
-        "¡Inicio de sesión exitoso! Redirigiendo a tu panel...",
-      );
-      setTimeout(() => {
-        router.push("/");
-      }, 1200);
-    }, 1000);
+    }
   };
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
+    if (isLoading || isGoogleLoading) return;
     setIsGoogleLoading(true);
     setErrorMessage(null);
-
-    setTimeout(() => {
+    try {
+      const auth = getFirebaseAuth();
+      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
+      await signInWithPopup(auth, new GoogleAuthProvider());
+      router.replace("/");
+    } catch (error) {
+      setErrorMessage(authErrorMessage(error));
+    } finally {
       setIsGoogleLoading(false);
-      setSuccessMessage("Autenticación con Google completada. Redirigiendo...");
-      setTimeout(() => {
-        router.push("/");
-      }, 1200);
-    }, 1200);
-  };
-
-  const handleDemoFill = () => {
-    setEmail("demo@databaseia.com");
-    setPassword("demo12345");
-    setErrorMessage(null);
-  };
-
-  const handleResetPassword = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!resetEmail) {
-      setResetMessage({
-        type: "error",
-        text: "Por favor ingresa tu correo electrónico registrado.",
-      });
-      return;
     }
+  };
 
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (resetLoading) return;
     setResetLoading(true);
     setResetMessage(null);
-
-    setTimeout(() => {
+    try {
+      await sendPasswordResetEmail(getFirebaseAuth(), resetEmail.trim());
+      setResetMessage({ type: "success", text: "Si existe una cuenta con este correo, recibirás un enlace de recuperación. Revisa también spam." });
+    } catch (error) {
+      setResetMessage({ type: "error", text: authErrorMessage(error) });
+    } finally {
       setResetLoading(false);
-      setResetMessage({
-        type: "success",
-        text: `Hemos enviado un enlace de recuperación a ${resetEmail}. Revisa tu bandeja de entrada o spam.`,
-      });
-    }, 1200);
+    }
   };
 
   return (
@@ -99,13 +91,13 @@ export default function LoginForm() {
           </h1>
           <p className="mt-2 text-sm text-brand-900/70">
             Ingresa a tu cuenta de{" "}
-            <span className="font-semibold text-brand-700">DataBaseIA</span>
+            <span className="font-semibold text-brand-700">DATAI</span>
           </p>
         </div>
 
         {/* Notificación de error */}
         {errorMessage && (
-          <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 flex items-start gap-3">
+          <div role="alert" className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 flex items-start gap-3">
             <svg
               className="w-5 h-5 text-red-500 shrink-0 mt-0.5"
               fill="none"
@@ -386,19 +378,6 @@ export default function LoginForm() {
             )}
           </button>
         </form>
-
-        {/* Demo rápida para pruebas */}
-        <div className="mt-5 pt-4 border-t border-brand-100 text-center">
-          <button
-            type="button"
-            onClick={handleDemoFill}
-            className="inline-flex items-center gap-1.5 text-xs text-brand-700 bg-brand-100/70 hover:bg-brand-100 px-3 py-1.5 rounded-full transition-colors cursor-pointer"
-            title="Llenar con credenciales de prueba"
-          >
-            <span>💡</span>
-            <span>Rellenar credenciales demo</span>
-          </button>
-        </div>
 
         {/* Enlace al registro */}
         <p className="mt-6 text-center text-sm text-brand-900/70">

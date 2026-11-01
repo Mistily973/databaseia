@@ -21,7 +21,7 @@ export default function Footer() {
         </ul>
 
         <p className="text-xs text-brand-200/50">
-          © {year} DataBaseIA. Todos los derechos reservados.
+          © {year} DATAI. Todos los derechos reservados.
         </p>
       </div>
     </footer>

@@ -9,7 +9,7 @@ export default function Logo({ dark = false }) {
         </svg>
       </span>
       <span className={`text-lg font-bold ${dark ? "text-white" : "text-brand-900"}`}>
-        Data<span className="text-brand-500">Base</span>IA
+        DATA<span className="text-brand-500">I</span>
       </span>
     </Link>
   );
