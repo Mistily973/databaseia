@@ -21,12 +21,13 @@ function form(mode, values, failure) {
   const source = fs.readFileSync(`components/auth/${mode}Form.tsx`, 'utf8');
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const context = { exports: {}, require: (name) => {
-    if (name === 'react') return { useState: (initial) => {
+    if (name === 'react') return { useCallback: (fn) => fn, useRef: (value) => ({ current: value }), useState: (initial) => {
       const i = index++;
       states[i] = i in values ? values[i] : initial;
       return [states[i], (value) => { states[i] = value; }];
     } };
     if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx };
+    if (name === './AuthSuccessAnimation') return { default: 'success-animation' };
     if (name === 'next/link') return { default: 'a' };
     if (name === 'next/navigation') return { useRouter: () => ({ replace: (url) => calls.push(['redirect', url]) }) };
     if (name === 'firebase/auth') return firebase;
@@ -55,22 +56,25 @@ test('registro bloquea contraseñas diferentes antes de llamar Firebase', async 
 test('registro crea la cuenta, guarda el nombre y redirige después', async () => {
   const f = form('Register', [' Ana ', ' ana@example.com ', 'password1', 'password1']);
   await f.submit();
-  assert.deepEqual(f.calls.map(c => c[0]), ['setPersistence', 'createUserWithEmailAndPassword', 'updateProfile', 'redirect']);
+  assert.deepEqual(f.calls.map(c => c[0]), ['setPersistence', 'createUserWithEmailAndPassword', 'updateProfile']);
   assert.equal(f.calls[1][2], 'ana@example.com');
   assert.equal(f.calls[2][2].displayName, 'Ana');
+  assert.equal(f.states.at(-1), true);
 });
 test('login fallido no anuncia éxito ni redirige', async () => {
   const f = form('Login', ['ana@example.com', 'wrong'], 'signInWithEmailAndPassword');
   await f.submit();
   assert.ok(!f.calls.some(c => c[0] === 'redirect'));
   assert.ok(f.states.includes('Error de autenticación'));
+  assert.equal(f.states.at(-1), false);
 });
 test('Recordarme controla la persistencia de Firebase', async () => {
   for (const remember of [true, false]) {
     const f = form('Login', ['ana@example.com', 'password1', remember]);
     await f.submit();
     assert.equal(f.calls[0][2], remember ? 'browserLocalPersistence' : 'browserSessionPersistence');
-    assert.equal(f.calls.at(-1)[0], 'redirect');
+    assert.equal(f.calls.at(-1)[0], 'signInWithEmailAndPassword');
+    assert.equal(f.states.at(-1), true);
   }
 });
 test('Google usa Firebase en ambos formularios y maneja el rechazo', async () => {
@@ -87,4 +91,36 @@ test('recuperación envía una solicitud real al SDK', async () => {
   await reset.props.onSubmit({ preventDefault() {} });
   assert.equal(f.calls[0][0], 'sendPasswordResetEmail');
   assert.equal(f.calls[0][2], 'ana@example.com');
+});
+
+test('la animación de éxito redirige al completar y bloquea el formulario', async () => {
+  for (const [mode, index] of [['Login', 12], ['Register', 9]]) {
+    const f = form(mode, { [index]: true });
+    const success = f.find(n => n.type === 'success-animation');
+    assert.ok(success);
+    assert.equal(success.props.mode, mode === 'Login' ? 'login' : 'signup');
+    assert.ok(f.find(n => n.props?.inert === true));
+    success.props.onComplete();
+    assert.deepEqual(f.calls, [['redirect', '/']]);
+  }
+});
+
+test('dos envíos simultáneos crean una sola cuenta', async () => {
+  const f = form('Register', ['Ana', 'ana@example.com', 'password1', 'password1']);
+  await Promise.all([f.submit(), f.submit()]);
+  assert.equal(f.calls.filter(c => c[0] === 'createUserWithEmailAndPassword').length, 1);
+});
+test('fallo del perfil informa que la cuenta existe y bloquea otro registro', async () => {
+  const f = form('Register', ['Ana', 'ana@example.com', 'password1', 'password1'], 'updateProfile');
+  await f.submit();
+  assert.ok(f.states[8].includes('Tu cuenta fue creada'));
+  const existing = form('Register', { 8: f.states[8] });
+  await existing.submit();
+  assert.equal(existing.calls.length, 0);
+});
+test('error al establecer persistencia no autentica ni muestra éxito', async () => {
+  const f = form('Login', ['ana@example.com', 'password1'], 'setPersistence');
+  await f.submit();
+  assert.deepEqual(f.calls.map(c => c[0]), ['setPersistence']);
+  assert.equal(f.states.at(-1), false);
 });

@@ -34,3 +34,16 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Configuración de Firebase Authentication
+
+Copia `.env.example` a `.env.local` y usa la configuración web de tu proyecto Firebase.
+El cliente necesita `NEXT_PUBLIC_FIREBASE_*`; las variables `AUTH_FIREBASE_*` no están disponibles en el navegador.
+Reinicia `npm run dev` después de editar el entorno. En producción configura las mismas variables antes de compilar y vuelve a desplegar: Next.js incorpora sus valores durante el build.
+Nunca pongas credenciales del Admin SDK ni claves privadas en variables `NEXT_PUBLIC_*`.
+
+En Firebase Console → Authentication, habilita Correo/contraseña y Google, y agrega el dominio del sitio a los dominios autorizados (incluido `localhost` para desarrollo).
+Consulta la [guía de correo/contraseña](https://firebase.google.com/docs/auth/web/password-auth) y la [guía de Google](https://firebase.google.com/docs/auth/web/google-signin).
+
+Comprobaciones locales: `node --test scripts/*.test.mjs`, `npm run lint` y `npm run build -- --webpack`.
+Las pruebas usan un SDK simulado; el acceso completo con Google requiere una cuenta y configuración válidas en Firebase.

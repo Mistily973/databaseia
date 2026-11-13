@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { browserLocalPersistence, setPersistence, createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { getFirebaseAuth, authErrorMessage } from "@/lib/firebase";
 
+import AuthSuccessAnimation from "./AuthSuccessAnimation";
+
 export default function RegisterForm() {
   const router = useRouter();
+  const requestPending = useRef(false);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -19,8 +22,12 @@ export default function RegisterForm() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  const [isSuccess, setIsSuccess] = useState(false);
+  const completeSignIn = useCallback(() => router.replace("/"), [router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (requestPending.current || isSuccess || successMessage) return;
     setErrorMessage(null);
     setSuccessMessage(null);
 
@@ -38,7 +45,8 @@ export default function RegisterForm() {
       setErrorMessage("Las contraseñas no coinciden.");
       return;
     }
-    if (isLoading || isGoogleLoading) return;
+    if (requestPending.current || isSuccess || successMessage) return;
+    requestPending.current = true;
     setIsLoading(true);
     try {
       const auth = getFirebaseAuth();
@@ -50,16 +58,18 @@ export default function RegisterForm() {
         setSuccessMessage("Tu cuenta fue creada, pero no pudimos guardar tu nombre. Puedes continuar al inicio.");
         return;
       }
-      router.replace("/");
+      setIsSuccess(true);
     } catch (error) {
       setErrorMessage(authErrorMessage(error));
     } finally {
+      requestPending.current = false;
       setIsLoading(false);
     }
   };
 
   const handleGoogleRegister = async () => {
-    if (isLoading || isGoogleLoading) return;
+    if (requestPending.current || isSuccess || successMessage) return;
+    requestPending.current = true;
     setIsGoogleLoading(true);
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -67,19 +77,22 @@ export default function RegisterForm() {
       const auth = getFirebaseAuth();
       await setPersistence(auth, browserLocalPersistence);
       await signInWithPopup(auth, new GoogleAuthProvider());
-      router.replace("/");
+      setIsSuccess(true);
     } catch (error) {
       setErrorMessage(authErrorMessage(error));
     } finally {
+      requestPending.current = false;
       setIsGoogleLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="p-8 bg-white rounded-2xl shadow-xl shadow-brand-900/5 border border-brand-200">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-900 tracking-tight">
+    <>
+      {isSuccess && <AuthSuccessAnimation mode="signup" onComplete={completeSignIn} />}
+    <div inert={isSuccess} className="w-full max-w-sm mx-auto">
+      <div className="w-full">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-brand-900 tracking-tight">
             Crea tu cuenta gratis
           </h1>
           <p className="mt-2 text-sm text-brand-900/70">
@@ -108,7 +121,7 @@ export default function RegisterForm() {
         <button
           type="button"
           onClick={handleGoogleRegister}
-          disabled={isGoogleLoading || isLoading}
+          disabled={isGoogleLoading || isLoading || isSuccess || !!successMessage}
           className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-white hover:bg-brand-50/60 text-brand-900 font-medium text-sm rounded-xl border border-brand-200 transition-colors shadow-xs disabled:opacity-60 cursor-pointer"
         >
           {isGoogleLoading ? (
@@ -144,7 +157,7 @@ export default function RegisterForm() {
             <div className="w-full border-t border-brand-200" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-white px-3 text-brand-900/50 font-medium tracking-wider">
+            <span className="bg-[#f5faf0] px-3 text-brand-900/50 font-medium tracking-wider">
               o con tu correo
             </span>
           </div>
@@ -170,7 +183,7 @@ export default function RegisterForm() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 autoComplete="name"
-                className="w-full pl-11 pr-4 py-2.5 bg-brand-50/40 border border-brand-200 rounded-xl text-brand-900 placeholder-brand-900/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
+                className="w-full pl-11 pr-4 py-2.5 bg-white border border-brand-200 rounded-xl text-brand-900 placeholder-brand-900/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
                 placeholder="Juan Pérez"
                 required
               />
@@ -196,7 +209,7 @@ export default function RegisterForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
-                className="w-full pl-11 pr-4 py-2.5 bg-brand-50/40 border border-brand-200 rounded-xl text-brand-900 placeholder-brand-900/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
+                className="w-full pl-11 pr-4 py-2.5 bg-white border border-brand-200 rounded-xl text-brand-900 placeholder-brand-900/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
                 placeholder="tu@empresa.com"
                 required
               />
@@ -222,7 +235,7 @@ export default function RegisterForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="new-password"
-                className="w-full pl-11 pr-11 py-2.5 bg-brand-50/40 border border-brand-200 rounded-xl text-brand-900 placeholder-brand-900/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
+                className="w-full pl-11 pr-11 py-2.5 bg-white border border-brand-200 rounded-xl text-brand-900 placeholder-brand-900/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
                 placeholder="Mínimo 6 caracteres"
                 required
               />
@@ -256,7 +269,7 @@ export default function RegisterForm() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               autoComplete="new-password"
-              className="w-full px-4 py-2.5 bg-brand-50/40 border border-brand-200 rounded-xl text-brand-900 placeholder-brand-900/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
+              className="w-full px-4 py-2.5 bg-white border border-brand-200 rounded-xl text-brand-900 placeholder-brand-900/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
               placeholder="Repite tu contraseña"
               minLength={6}
               required
@@ -265,7 +278,7 @@ export default function RegisterForm() {
 
           <button
             type="submit"
-            disabled={isLoading || isGoogleLoading}
+            disabled={isLoading || isGoogleLoading || isSuccess || !!successMessage}
             className="w-full py-3 px-4 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white rounded-xl font-semibold shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer mt-2"
           >
             {isLoading ? (
@@ -293,5 +306,6 @@ export default function RegisterForm() {
         </p>
       </div>
     </div>
+    </>
   );
 }

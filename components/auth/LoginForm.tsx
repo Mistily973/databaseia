@@ -1,13 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { browserLocalPersistence, browserSessionPersistence, setPersistence, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from "firebase/auth";
 import { getFirebaseAuth, authErrorMessage } from "@/lib/firebase";
 
+import AuthSuccessAnimation from "./AuthSuccessAnimation";
+
 export default function LoginForm() {
   const router = useRouter();
+  const requestPending = useRef(false);
+  const resetPending = useRef(false);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,66 +31,85 @@ export default function LoginForm() {
     text: string;
   } | null>(null);
 
+  const [isSuccess, setIsSuccess] = useState(false);
+  const completeSignIn = useCallback(() => router.replace("/"), [router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (requestPending.current || isSuccess) return;
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    if (!email || !password) {
+    if (!email.trim() || !password) {
       setErrorMessage("Por favor, completa todos los campos requeridos.");
       return;
     }
 
-    if (isLoading || isGoogleLoading) return;
+    if (requestPending.current || isSuccess) return;
+    requestPending.current = true;
     setIsLoading(true);
     try {
       const auth = getFirebaseAuth();
       await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
       await signInWithEmailAndPassword(auth, email.trim(), password);
-      router.replace("/");
+      setIsSuccess(true);
     } catch (error) {
       setErrorMessage(authErrorMessage(error));
     } finally {
+      requestPending.current = false;
       setIsLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-    if (isLoading || isGoogleLoading) return;
+    if (requestPending.current || isSuccess) return;
+    requestPending.current = true;
     setIsGoogleLoading(true);
     setErrorMessage(null);
     try {
       const auth = getFirebaseAuth();
       await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
       await signInWithPopup(auth, new GoogleAuthProvider());
-      router.replace("/");
+      setIsSuccess(true);
     } catch (error) {
       setErrorMessage(authErrorMessage(error));
     } finally {
+      requestPending.current = false;
       setIsGoogleLoading(false);
     }
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (resetLoading) return;
+    if (resetPending.current) return;
+    if (!resetEmail.trim()) {
+      setResetMessage({ type: "error", text: "Ingresa tu correo electrónico." });
+      return;
+    }
+    resetPending.current = true;
     setResetLoading(true);
     setResetMessage(null);
     try {
       await sendPasswordResetEmail(getFirebaseAuth(), resetEmail.trim());
       setResetMessage({ type: "success", text: "Si existe una cuenta con este correo, recibirás un enlace de recuperación. Revisa también spam." });
     } catch (error) {
-      setResetMessage({ type: "error", text: authErrorMessage(error) });
+      const notFound = typeof error === "object" && error !== null && "code" in error && error.code === "auth/user-not-found";
+      setResetMessage(notFound
+        ? { type: "success", text: "Si existe una cuenta con este correo, recibirás un enlace de recuperación. Revisa también spam." }
+        : { type: "error", text: authErrorMessage(error) });
     } finally {
+      resetPending.current = false;
       setResetLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="p-8 bg-white rounded-2xl shadow-xl shadow-brand-900/5 border border-brand-200">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-900 tracking-tight">
+    <>
+      {isSuccess && <AuthSuccessAnimation mode="login" onComplete={completeSignIn} />}
+    <div inert={isSuccess} className="w-full max-w-sm mx-auto">
+      <div className="w-full">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-brand-900 tracking-tight">
             Bienvenido de nuevo
           </h1>
           <p className="mt-2 text-sm text-brand-900/70">
@@ -139,7 +162,7 @@ export default function LoginForm() {
         <button
           type="button"
           onClick={handleGoogleLogin}
-          disabled={isGoogleLoading || isLoading}
+          disabled={isGoogleLoading || isLoading || isSuccess}
           className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-white hover:bg-brand-50/60 text-brand-900 font-medium text-sm rounded-xl border border-brand-200 transition-colors shadow-xs disabled:opacity-60 cursor-pointer"
         >
           {isGoogleLoading ? (
@@ -195,7 +218,7 @@ export default function LoginForm() {
             <div className="w-full border-t border-brand-200" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-white px-3 text-brand-900/50 font-medium tracking-wider">
+            <span className="bg-[#f5faf0] px-3 text-brand-900/50 font-medium tracking-wider">
               o con tu correo
             </span>
           </div>
@@ -232,7 +255,7 @@ export default function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
-                className="w-full pl-11 pr-4 py-2.5 bg-brand-50/40 border border-brand-200 rounded-xl text-brand-900 placeholder-brand-900/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
+                className="w-full pl-11 pr-4 py-2.5 bg-white border border-brand-200 rounded-xl text-brand-900 placeholder-brand-900/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
                 placeholder="tu@empresa.com"
                 required
               />
@@ -268,7 +291,7 @@ export default function LoginForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
-                className="w-full pl-11 pr-11 py-2.5 bg-brand-50/40 border border-brand-200 rounded-xl text-brand-900 placeholder-brand-900/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
+                className="w-full pl-11 pr-11 py-2.5 bg-white border border-brand-200 rounded-xl text-brand-900 placeholder-brand-900/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
                 placeholder="••••••••"
                 required
               />
@@ -347,7 +370,7 @@ export default function LoginForm() {
 
           <button
             type="submit"
-            disabled={isLoading || isGoogleLoading}
+            disabled={isLoading || isGoogleLoading || isSuccess}
             className="w-full py-3 px-4 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white rounded-xl font-semibold shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
           >
             {isLoading ? (
@@ -436,7 +459,7 @@ export default function LoginForm() {
                   value={resetEmail}
                   onChange={(e) => setResetEmail(e.target.value)}
                   placeholder="tu@empresa.com"
-                  className="w-full px-4 py-2.5 bg-brand-50/40 border border-brand-200 rounded-xl text-sm text-brand-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full px-4 py-2.5 bg-white border border-brand-200 rounded-xl text-sm text-brand-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                   required
                 />
               </div>
@@ -462,5 +485,6 @@ export default function LoginForm() {
         </div>
       )}
     </div>
+    </>
   );
 }
