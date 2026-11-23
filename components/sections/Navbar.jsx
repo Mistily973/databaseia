@@ -12,14 +12,20 @@ export default function Navbar() {
         <ul className="hidden gap-8 md:flex">
           {navLinks.map((link) => (
             <li key={link.href}>
-              <a href={link.href} className="nav-link">{link.label}</a>
+              <a href={link.href} className="nav-link">
+                {link.label}
+              </a>
             </li>
           ))}
         </ul>
 
         <div className="flex items-center gap-5">
-          <Link href="/login" className="nav-link hidden sm:block">Iniciar sesión</Link>
-          <Button href="#precios" size="sm">Empezar gratis</Button>
+          <Link href="/login" className="nav-link hidden sm:block">
+            Iniciar sesión
+          </Link>
+          <Button href="#precios" size="sm">
+            Empezar gratis
+          </Button>
         </div>
       </nav>
     </header>

@@ -13,11 +13,20 @@ const firebaseConfig = {
 };
 
 export function getFirebaseAuth() {
-  const required = [firebaseConfig.apiKey, firebaseConfig.authDomain, firebaseConfig.projectId, firebaseConfig.appId];
+  const required = [
+    firebaseConfig.apiKey,
+    firebaseConfig.authDomain,
+    firebaseConfig.projectId,
+    firebaseConfig.appId,
+  ];
   if (required.some((value) => !value?.trim())) {
-    throw Object.assign(new Error("Missing Firebase web configuration"), { code: "auth/configuration-missing" });
+    throw Object.assign(new Error("Missing Firebase web configuration"), {
+      code: "auth/configuration-missing",
+    });
   }
-  const app = getApps().find((app) => app.name === "[DEFAULT]") ?? initializeApp(firebaseConfig);
+  const app =
+    getApps().find((app) => app.name === "[DEFAULT]") ??
+    initializeApp(firebaseConfig);
   const auth = getAuth(app);
   auth.languageCode = "es";
   return auth;
@@ -29,11 +38,16 @@ export function authErrorMessage(error: unknown): string {
       ? String(error.code)
       : "";
   const messages: Record<string, string> = {
-    "auth/configuration-missing": "El acceso no está disponible por un problema de configuración. Contacta al administrador.",
-    "auth/invalid-api-key": "El acceso no está disponible por un problema de configuración. Contacta al administrador.",
-    "auth/app-not-authorized": "Esta aplicación no está autorizada para iniciar sesión. Contacta al administrador.",
-    "auth/web-storage-unsupported": "El navegador no permite guardar la sesión. Habilita el almacenamiento del sitio e inténtalo de nuevo.",
-    "auth/operation-not-supported-in-this-environment": "Abre DATAI en un navegador compatible para iniciar sesión.",
+    "auth/configuration-missing":
+      "El acceso no está disponible por un problema de configuración. Contacta al administrador.",
+    "auth/invalid-api-key":
+      "El acceso no está disponible por un problema de configuración. Contacta al administrador.",
+    "auth/app-not-authorized":
+      "Esta aplicación no está autorizada para iniciar sesión. Contacta al administrador.",
+    "auth/web-storage-unsupported":
+      "El navegador no permite guardar la sesión. Habilita el almacenamiento del sitio e inténtalo de nuevo.",
+    "auth/operation-not-supported-in-this-environment":
+      "Abre DATAI en un navegador compatible para iniciar sesión.",
     "auth/invalid-credential": "El correo o la contraseña son incorrectos.",
     "auth/wrong-password": "El correo o la contraseña son incorrectos.",
     "auth/user-not-found": "El correo o la contraseña son incorrectos.",
