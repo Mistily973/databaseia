@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   browserLocalPersistence,
-  browserSessionPersistence,
   setPersistence,
   signInWithEmailAndPassword,
   GoogleAuthProvider,
@@ -58,7 +57,7 @@ export default function LoginForm() {
     setIsLoading(true);
     try {
       const auth = getFirebaseAuth();
-      await setPersistence(auth, browserSessionPersistence);
+      await setPersistence(auth, browserLocalPersistence);
       await signInWithEmailAndPassword(auth, email.trim(), password);
       setIsSuccess(true);
     } catch (error) {
@@ -76,10 +75,7 @@ export default function LoginForm() {
     setErrorMessage(null);
     try {
       const auth = getFirebaseAuth();
-      await setPersistence(
-        auth,
-        rememberMe ? browserLocalPersistence : browserSessionPersistence,
-      );
+      await setPersistence(auth, browserLocalPersistence);
       await signInWithPopup(auth, new GoogleAuthProvider());
       setIsSuccess(true);
     } catch (error) {
